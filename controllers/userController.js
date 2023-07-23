@@ -96,7 +96,7 @@ exports.avatar = async (req, res) => {
         "path": req.file.key
     });
 
-    return res.status(200).json({"message":"Файл сожранен"});
+    return res.status(200).json({"message":"Файл сохранен"});
 };
 
 

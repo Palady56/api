@@ -85,3 +85,7 @@ exports.postDelete = async (req, res) => {
     return res.status(200).json({"message": "Успех"});
 };
 
+exports.postInfo = async (req, res) => {
+    
+}
+
