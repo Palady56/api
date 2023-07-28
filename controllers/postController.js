@@ -15,7 +15,7 @@ const { S3 } = require("@aws-sdk/client-s3");
 exports.postCreate = async (req, res) => {
 
     if (req.files.length === 0) {
-        return res.status(400).json({"message":"Файлы отсутствуют"});
+        return res.status(400).json({ "message": "Файлы отсутствуют" });
     }
 
     const post = await Post.create({
@@ -34,21 +34,21 @@ exports.postCreate = async (req, res) => {
         });
     });
 
-    return res.status(200).json({"message": "Успех"});
+    return res.status(200).json({ "message": "Успех" });
 };
 
 exports.postDelete = async (req, res) => {
 
     const post = await Post.findOne({
         where: {
-            id: req.params.postId
+            id: req.postId
         },
         include: 'User'
     });
 
-    if (!post) return res.status(404).json({"message": "Такого поста не существует"});
+    if (!post) return res.status(404).json({ "message": "Такого поста не существует" });
 
-    if (post.User.id !== req.tokenPayload.userId) return res.status(403).json({"message": "Доступ запрещен"});
+    if (post.User.id !== req.tokenPayload.userId) return res.status(403).json({ "message": "Доступ запрещен" });
 
     const media = await Media.findAll({
         where: {
@@ -57,7 +57,7 @@ exports.postDelete = async (req, res) => {
         }
     })
 
-    if (media) {
+    if (media && media.length > 0) {
 
         const s3 = new S3({
             endpoint: process.env.AWS_HOST,
@@ -70,7 +70,7 @@ exports.postDelete = async (req, res) => {
             forcePathStyle: true,
         });
 
-        media.forEach( async (modelMedia) => {
+        media.forEach(async (modelMedia) => {
             try {
                 await s3.deleteObject({ Bucket: process.env.AWS_BUCKET, Key: modelMedia.path });
                 await modelMedia.destroy();
@@ -82,10 +82,115 @@ exports.postDelete = async (req, res) => {
 
     post.destroy();
 
-    return res.status(200).json({"message": "Успех"});
+    return res.status(200).json({ "message": "Успех" });
 };
 
-exports.postInfo = async (req, res) => {
-    
-}
+exports.postGetById = async (req, res) => {
 
+    const post = await Post.findOne({
+        where: {
+            id: req.postId
+        },
+        include: 'User'
+    });
+
+    if (!post) return res.status(404).json({ "message": "Такого поста не существует" });
+
+    const media = await Media.findAll({
+        where: {
+            model: 'Post',
+            modelId: post.id
+        }
+    });
+
+    let arrayPathToImages = [];
+
+    if (media && media.length > 0) {
+        let arrayPathToImages = [];
+        media.forEach(async (modelMedia) => {
+            arrayPathToImages.push(`${process.env.APP_URL}/storage/${modelMedia.path}`)
+        });
+    }
+
+    return res.status(200).json({
+        id: post.id,
+        description: post.description,
+        createdAt: post.createdAt,
+        images: arrayPathToImages,
+        user: {
+            id: post.User.id,
+            firstName: post.User.firstName,
+            lastName: post.User.lastName
+        }
+    });
+};
+
+exports.postGetAll = async (req, res) => {
+
+    const { offset, limit } = req.paginate;
+
+    const APP_URL = process.env.APP_URL;
+
+    const posts = await Post.findAndCountAll({
+        offset: offset,
+        limit: limit,
+        include: 'User'
+    });
+
+    if (!posts) return res.status(404).json({ "message": "Постов пока не существует" });
+
+    let repositoryPosts = [];
+
+    for (const post of posts.rows) {
+
+        let arrayPathToImages = [];
+
+        const gallery = await Media.findAll({
+            where: {
+                model: 'Post',
+                modelId: post.id,
+                fieldname: 'gallery'
+            }
+        });
+
+        const avatar = await Media.findOne({
+            where: {
+                model: 'User',
+                modelId: post.User.id,
+                fieldname: 'avatar'
+            }
+        });
+
+        let urlToAvatar = '';
+
+        if (avatar) {
+            urlToAvatar = `${APP_URL}/storage/${avatar.path}`
+        }
+
+        if (gallery.length === 0) continue;
+
+        gallery.forEach((modelMedia) => {
+            arrayPathToImages.push(`${APP_URL}/storage/${modelMedia.path}`)
+        });
+
+        repositoryPosts.push({
+            id: post.id,
+            description: post.description,
+            createdAt: post.createdAt,
+            images: arrayPathToImages,
+            user: {
+                id: post.User.id,
+                firstName: post.User.firstName,
+                lastName: post.User.lastName,
+                avatar: urlToAvatar
+            }
+        });
+    }
+
+    const response = {
+        total: posts.count,
+        posts: repositoryPosts
+    }
+
+    return res.status(200).json(response);
+};
