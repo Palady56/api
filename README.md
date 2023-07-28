@@ -8,7 +8,7 @@
 - Скачать репозиторий в локальную папку с проектом
 
 ```
-git clone git@github.com:Zeonlb426/api.git
+git clone git@github.com:Palady56/api.git
 ```
 
 - Перейти в корневую директорию приложения
