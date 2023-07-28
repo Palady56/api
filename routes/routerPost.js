@@ -110,7 +110,7 @@ router.post("/post/create", auth, uploadImage.array("gallery", 10), validationRe
 *         description: Что-то пошло не так...
 *
 */
-router.delete("/post/:postId", auth, postController.postDelete);
+router.delete("/post/:postId", auth, validationRequest.paramPostId, postController.postDelete);
 
 /**
 * @swagger
@@ -157,7 +157,9 @@ router.delete("/post/:postId", auth, postController.postDelete);
 *         description: Что-то пошло не так...
 *
 */
-router.get("/post/info/:postId", auth, postController.postInfo);
+router.get("/post/info/:postId", auth, validationRequest.paramPostId, postController.postGetById);
+
+router.get("/post/all", auth, validationRequest.paginateQueryParams, postController.postGetAll)
 
 
 module.exports = router
