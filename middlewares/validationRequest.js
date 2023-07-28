@@ -449,7 +449,20 @@ exports.update = async (req, res, next) => {
     return res.status(400).json({ errors: errors.array() });
 }
 
-
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     postRequest:
+ *       type: object
+ *       properties:
+ *         description:
+ *           type: string
+ *           maxLength: 255
+ *           description: Описание пользователя
+ *       example:
+ *         description: "Today is a good day!"
+ */
 exports.post = async (req, res, next) => {
     const schemaObject = checkSchema({
         description: {
